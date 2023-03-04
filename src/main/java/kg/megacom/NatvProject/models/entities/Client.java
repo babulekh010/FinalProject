@@ -24,6 +24,4 @@ public class Client {
     String phone;
     LocalDateTime startDate;
     LocalDateTime endDate;
-    @OneToOne(cascade = CascadeType.ALL)
-    Balance balance;
 }

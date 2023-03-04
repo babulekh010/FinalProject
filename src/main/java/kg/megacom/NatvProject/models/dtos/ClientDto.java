@@ -18,5 +18,4 @@ public class ClientDto {
     LocalDateTime startDate;
     @JsonIgnore
     LocalDateTime endDate;
-    BalanceDto balance;
 }
