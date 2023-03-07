@@ -1,14 +1,14 @@
 package kg.megacom.NatvProject.services;
 
-import kg.megacom.NatvProject.models.dtos.AdvertisementOrderDto;
-import kg.megacom.NatvProject.models.dtos.BannerOrderDto;
+import kg.megacom.NatvProject.models.dtos.CreateAdvertisementRequest;
+import kg.megacom.NatvProject.models.dtos.CreateBannerRequest;
 import kg.megacom.NatvProject.models.dtos.OrderDto;
 import org.springframework.http.ResponseEntity;
 
 public interface OrderService {
-    ResponseEntity<?> saveAdvertisement(AdvertisementOrderDto order);
+    ResponseEntity<?> saveAdvertisement(CreateAdvertisementRequest order);
 
-    ResponseEntity<?> saveBanner(BannerOrderDto order);
+    ResponseEntity<?> saveBanner(CreateBannerRequest order);
 
     OrderDto findById(Long id);
 }

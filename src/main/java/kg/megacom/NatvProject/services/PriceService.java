@@ -1,16 +1,16 @@
 package kg.megacom.NatvProject.services;
 
+import kg.megacom.NatvProject.models.dtos.ChannelDto;
 import kg.megacom.NatvProject.models.dtos.DiscountDto;
 import kg.megacom.NatvProject.models.dtos.PriceDto;
-import kg.megacom.NatvProject.models.entities.Channel;
 
 import java.util.List;
 
 public interface PriceService {
-    PriceDto save(PriceDto priceDto, Channel channel);
-    PriceDto findActivePriceByChannel(Channel c);
-    double getFinalAdvertisementPrice(List<DiscountDto> activeDiscounts, double pricePerLetter, int symbolsAmount, int days);
-    double advertisementPriceWithoutDiscount(int symbolsAmount, double pricePerLetter, int adDays);
-    double getBannerPrice(Double bannerPrice, int days);
-    PriceDto update(PriceDto price, Channel channel);
+    PriceDto save(PriceDto priceDto, ChannelDto channel);
+    PriceDto findActivePriceByChannel(ChannelDto c);
+    double calculateAdPriceWithDiscount(List<DiscountDto> activeDiscounts, double pricePerLetter, int symbolsAmount, int days);
+    double calculateAdPriceWithoutDiscount(int symbolsAmount, double pricePerLetter, int adDays);
+    double calculateBannerPrice(Double bannerPrice, int days);
+    PriceDto update(PriceDto price, ChannelDto channel);
 }

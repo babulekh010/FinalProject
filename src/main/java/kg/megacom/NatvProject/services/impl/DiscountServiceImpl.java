@@ -1,6 +1,8 @@
 package kg.megacom.NatvProject.services.impl;
 
+import kg.megacom.NatvProject.mappers.ChannelMapper;
 import kg.megacom.NatvProject.mappers.DiscountMapper;
+import kg.megacom.NatvProject.models.dtos.ChannelDto;
 import kg.megacom.NatvProject.models.dtos.DiscountDto;
 import kg.megacom.NatvProject.models.entities.Channel;
 import kg.megacom.NatvProject.models.entities.Discount;
@@ -19,24 +21,25 @@ public class DiscountServiceImpl implements DiscountService {
 
     private final DiscountRepo discountRepo;
     private final DiscountMapper discountMapper;
+    private final ChannelMapper channelMapper;
 
     @Override
     public List<DiscountDto> saveAll(List<DiscountDto> discounts,
-                                     Channel channel) {
+                                     ChannelDto channel) {
         return discountMapper.toDTOList(
                 discountRepo.saveAll(toDiscountList(discounts, channel)));
     }
 
     @Override
-    public List<DiscountDto> findActiveDiscountsByChannel(Channel channel) {
+    public List<DiscountDto> findActiveDiscountsByChannel(ChannelDto channel) {
         return discountMapper.toDTOList(
                 discountRepo.findAllByChannelAndEndDateAfter
-                        (channel, LocalDateTime.now()));
+                        (channelMapper.toEntity(channel), LocalDateTime.now()));
     }
     private List<Discount> toDiscountList(List<DiscountDto> discounts,
-                                          Channel channel) {
+                                          ChannelDto channel) {
         return discounts.stream()
-                .map(x -> toDiscount(x, channel))
+                .map(x -> toDiscount(x, channelMapper.toEntity(channel)))
                 .collect(Collectors.toList());
     }
 
@@ -52,10 +55,10 @@ public class DiscountServiceImpl implements DiscountService {
     }
 
     @Override
-    public void update(List<DiscountDto> discounts, Channel channel) {
+    public void update(List<DiscountDto> discounts, ChannelDto channel) {
 
         // Актуальные скидки
-        List<Discount> currentDiscounts = discountRepo.findAllByChannelAndEndDateAfter(channel, LocalDateTime.now());
+        List<Discount> currentDiscounts = discountRepo.findAllByChannelAndEndDateAfter(channelMapper.toEntity(channel), LocalDateTime.now());
 
         // Скидки на удаление
         List<Discount> discountsForDelete = currentDiscounts.stream()

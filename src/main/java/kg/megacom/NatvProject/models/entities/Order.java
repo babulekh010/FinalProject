@@ -24,5 +24,6 @@ public class Order {
     Banner banner;
     @ManyToOne
     Channel channel;
+    Double orderPrice;
 
 }

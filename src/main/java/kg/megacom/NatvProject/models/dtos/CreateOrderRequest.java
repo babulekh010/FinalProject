@@ -11,7 +11,7 @@ import java.util.List;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderChannelDto {
+public class CreateOrderRequest {
     Long channelId;
     @JsonFormat(pattern="dd.MM.yyyy")
     List<LocalDate> days;

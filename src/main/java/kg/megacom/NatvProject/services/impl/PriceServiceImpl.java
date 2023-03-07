@@ -1,9 +1,10 @@
 package kg.megacom.NatvProject.services.impl;
 
+import kg.megacom.NatvProject.mappers.ChannelMapper;
 import kg.megacom.NatvProject.mappers.PriceMapper;
+import kg.megacom.NatvProject.models.dtos.ChannelDto;
 import kg.megacom.NatvProject.models.dtos.DiscountDto;
 import kg.megacom.NatvProject.models.dtos.PriceDto;
-import kg.megacom.NatvProject.models.entities.Channel;
 import kg.megacom.NatvProject.models.entities.Price;
 import kg.megacom.NatvProject.repositories.PriceRepo;
 import kg.megacom.NatvProject.services.PriceService;
@@ -20,11 +21,13 @@ import java.util.Objects;
 public class PriceServiceImpl implements PriceService {
     private final PriceRepo priceRepo;
     private final PriceMapper priceMapper;
+    private final ChannelMapper channelMapper;
 
     @Override
-    public PriceDto save(PriceDto priceDto, Channel channel) {
+    public PriceDto save(PriceDto priceDto, ChannelDto channel) {
 
-        Price currentPrice = priceRepo.findByChannelAndEndDateAfter(channel, LocalDateTime.now());
+        Price currentPrice = priceRepo.findByChannelAndEndDateAfter(
+                channelMapper.toEntity(channel), LocalDateTime.now());
 
         if (Objects.nonNull(currentPrice)) {
             currentPrice.setEndDate(LocalDateTime.now());
@@ -33,7 +36,7 @@ public class PriceServiceImpl implements PriceService {
         return priceMapper.toDto(priceRepo.save(toNewPrice(priceDto, channel)));
     }
 
-    private Price toNewPrice(PriceDto p, Channel c) {
+    private Price toNewPrice(PriceDto p, ChannelDto c) {
 
         return Price.builder()
                 .id(p.getId())
@@ -41,22 +44,23 @@ public class PriceServiceImpl implements PriceService {
                 .endDate(LocalDateTime.now().plusYears(1000))
                 .pricePerLetter(p.getPricePerLetter())
                 .bannerPrice(p.getBannerPrice())
-                .channel(c)
+                .channel(channelMapper.toEntity(c))
                 .build();
     }
 
     @Override
-    public PriceDto findActivePriceByChannel(Channel channel) {
+    public PriceDto findActivePriceByChannel(ChannelDto channel) {
         return priceMapper.toDto(
-                priceRepo.findByChannelAndEndDateAfter(channel, LocalDateTime.now()));
+                priceRepo.findByChannelAndEndDateAfter(
+                        channelMapper.toEntity(channel), LocalDateTime.now()));
     }
 
-    public double getFinalAdvertisementPrice(List<DiscountDto> activeDiscounts, double pricePerLetter, int symbolsAmount, int days) {
+    public double calculateAdPriceWithDiscount(List<DiscountDto> activeDiscounts, double pricePerLetter, int symbolsAmount, int days) {
 
         double totalPrice = 0;
 
         if (activeDiscounts.size() == 0) {
-            totalPrice = advertisementPriceWithoutDiscount(symbolsAmount, pricePerLetter, days);
+            totalPrice = calculateAdPriceWithoutDiscount(symbolsAmount, pricePerLetter, days);
 
         } else if (activeDiscounts.size() == 1) {
             int discount = activeDiscounts.get(0).getDiscount();
@@ -71,7 +75,7 @@ public class PriceServiceImpl implements PriceService {
                     .orElse(new DiscountDto());
 
             if (Objects.isNull(discount.getId())) {
-                totalPrice = advertisementPriceWithoutDiscount(symbolsAmount, pricePerLetter, days);
+                totalPrice = calculateAdPriceWithoutDiscount(symbolsAmount, pricePerLetter, days);
             } else {
                 totalPrice = advertisementPriceWithDiscount(symbolsAmount, pricePerLetter, days, discount.getDiscount());
             }
@@ -80,7 +84,7 @@ public class PriceServiceImpl implements PriceService {
         return totalPrice;
     }
 
-    public double advertisementPriceWithoutDiscount(int symbolsAmount, double pricePerLetter, int adDays) {
+    public double calculateAdPriceWithoutDiscount(int symbolsAmount, double pricePerLetter, int adDays) {
         return symbolsAmount * pricePerLetter * adDays;
     }
 
@@ -90,14 +94,15 @@ public class PriceServiceImpl implements PriceService {
     }
 
     @Override
-    public double getBannerPrice(Double bannerPrice, int days) {
+    public double calculateBannerPrice(Double bannerPrice, int days) {
         return bannerPrice * days;
     }
 
     @Override
-    public PriceDto update(PriceDto price, Channel channel) {
+    public PriceDto update(PriceDto price, ChannelDto channel) {
 
-        Price currentPrice = priceRepo.findByChannelAndEndDateAfter(channel, LocalDateTime.now());
+        Price currentPrice = priceRepo.findByChannelAndEndDateAfter(
+                channelMapper.toEntity(channel), LocalDateTime.now());
 
         if (!currentPrice.getId().equals(price.getId())) {
             return save(price, channel);

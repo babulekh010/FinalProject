@@ -2,8 +2,8 @@ package kg.megacom.NatvProject.controllers;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import kg.megacom.NatvProject.models.dtos.AdvertisementOrderDto;
-import kg.megacom.NatvProject.models.dtos.BannerOrderDto;
+import kg.megacom.NatvProject.models.dtos.CreateAdvertisementRequest;
+import kg.megacom.NatvProject.models.dtos.CreateBannerRequest;
 import kg.megacom.NatvProject.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,13 +24,13 @@ public class OrderController {
 
     @PostMapping("/save")
     @ApiOperation(value = "Создание текстовой рекламы")
-    public ResponseEntity<?> saveAdvertisement(@RequestBody AdvertisementOrderDto order) {
+    public ResponseEntity<?> saveAdvertisement(@RequestBody CreateAdvertisementRequest order) {
         return orderService.saveAdvertisement(order);
     }
 
     @PostMapping("/save-banner")
     @ApiOperation(value = "Создание баннерной рекламы")
-    public ResponseEntity<?> saveBanner(@RequestBody BannerOrderDto order) {
+    public ResponseEntity<?> saveBanner(@RequestBody CreateBannerRequest order) {
         return orderService.saveBanner(order);
     }
 }

@@ -1,12 +1,8 @@
 package kg.megacom.NatvProject.services.impl;
 
-import kg.megacom.NatvProject.mappers.AdvertisementMapper;
-import kg.megacom.NatvProject.mappers.BannerMapper;
-import kg.megacom.NatvProject.mappers.ChannelMapper;
 import kg.megacom.NatvProject.mappers.OrderMapper;
 import kg.megacom.NatvProject.models.dtos.*;
-import kg.megacom.NatvProject.models.entities.Channel;
-import kg.megacom.NatvProject.models.entities.Order;
+import kg.megacom.NatvProject.models.enums.OrderStatus;
 import kg.megacom.NatvProject.repositories.OrderRepo;
 import kg.megacom.NatvProject.services.*;
 import lombok.RequiredArgsConstructor;
@@ -22,146 +18,137 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepo orderRepo;
-    private final ClientService clientService;
+    private final AuthenticationService authService;
     private final AdvertisementService advertisementService;
     private final OrderDateService orderDateService;
     private final BalanceService balanceService;
     private final PriceService priceService;
     private final DiscountService discountService;
     private final BannerService bannerService;
-    private final NotificationServiceFeignClient notificationService;
     private final ChannelService channelService;
     private final OrderMapper orderMapper;
-    private final ChannelMapper channelMapper;
-    private final AdvertisementMapper advertisementMapper;
-    private final BannerMapper bannerMapper;
 
     @Override
-    public ResponseEntity<?> saveAdvertisement(AdvertisementOrderDto order) {
+    public ResponseEntity<?> saveAdvertisement(CreateAdvertisementRequest request) {
 
-        int symbolAmount = order.getText().replace(" ", "").length();
+        int symbolAmount = request.getText().replace(" ", "").length();
 
         if (symbolAmount < 20) {
             return ResponseEntity.status(403)
                     .body("Текст объявления должен содержать не менее 20 символов!");
         } else {
-            // Создание клиента
-            ClientDto clientDto = clientService.saveClient(
-                    order.getClientEmail(), order.getClientFIO(), order.getClientPhone());
+            // Регистрация клиента
+            ClientDto clientDto = authService.register(
+                    request.getClientEmail(), request.getClientFIO(), request.getClientPhone());
+
+            // Создание баланса клиента
             balanceService.saveBalance(clientDto);
 
             // Создание объявления
-            AdvertisementDto advertisementDto = advertisementService.saveAdvertisement(order.getText(), clientDto);
-
-            // Email о статусе заявки
-            sendStatusNotification(clientDto);
+            AdvertisementDto advertisementDto = advertisementService.saveAdvertisement(request.getText(), clientDto);
 
             double totalPrice = 0;
 
-            for (OrderChannelDto channelDto : order.getChannels()) {
+            // Сохранение списка заказов
+            for (CreateOrderRequest order : request.getChannels()) {
 
-                Channel channel = channelMapper.toEntity(channelService.findById(channelDto.getChannelId()));
+                ChannelDto channel = channelService.findById(order.getChannelId());
 
-                // Подсчет цены
                 List<DiscountDto> activeDiscounts = discountService.findActiveDiscountsByChannel(channel);
                 double pricePerLetter = priceService.findActivePriceByChannel(channel).getPricePerLetter();
-                int days = channelDto.getDays().size();
+                int days = order.getDays().size();
 
+                // Цена со скидкой
                 double priceWithDiscount = priceService.
-                        getFinalAdvertisementPrice(activeDiscounts, pricePerLetter, symbolAmount, days);
+                        calculateAdPriceWithDiscount(activeDiscounts, pricePerLetter, symbolAmount, days);
+                order.setPriceWithDiscount(priceWithDiscount);
 
-                channelDto.setPrice(priceService
-                        .advertisementPriceWithoutDiscount(symbolAmount, pricePerLetter, days));
-                channelDto.setPriceWithDiscount(priceWithDiscount);
+                // Цена без скидки
+                order.setPrice(priceService
+                        .calculateAdPriceWithoutDiscount(symbolAmount, pricePerLetter, days));
 
                 totalPrice += priceWithDiscount;
 
-                // Сохранение заказов
-                OrderDto orderDto = saveAdvertisementOrder(advertisementDto, channel);
+                // Сохранение заказа
+                OrderDto orderDto = saveAdvertisementOrder(advertisementDto, priceWithDiscount, channel);
 
                 // Сохранение order dates
-                orderDateService.saveAll(channelDto.getDays(), orderDto);
+                orderDateService.saveAll(order.getDays(), orderDto);
             }
-            order.setTotalPrice(totalPrice);
-            order.setStatus(advertisementDto.getStatus());
+
+            request.setTotalPrice(totalPrice);
+            request.setStatus(OrderStatus.CREATED);
 
             advertisementService.saveTotalPrice(advertisementDto.getId(), totalPrice);
 
-            log.info("Объявление с ID «" + advertisementDto.getId() + "» сохранено!");
-            return ResponseEntity.status(200).body(order);
+            log.info("Объявление с ID «" + advertisementDto.getId() + "» сохранено");
+            return ResponseEntity.status(200).body(request);
         }
     }
 
-    private OrderDto saveAdvertisementOrder(AdvertisementDto advertisement, Channel channel) {
-        Order order = Order.builder()
-                .advertisement(advertisementMapper.toEntity(advertisement))
+    private OrderDto saveAdvertisementOrder(AdvertisementDto advertisement, Double price, ChannelDto channel) {
+        OrderDto order = OrderDto.builder()
+                .advertisement(advertisement)
+                .orderPrice(price)
                 .channel(channel)
                 .build();
-        return orderMapper.toDto(orderRepo.save(order));
+        return orderMapper.toDto(orderRepo.save(orderMapper.toEntity(order)));
     }
 
     @Override
-    public ResponseEntity<?> saveBanner(BannerOrderDto order) {
+    public ResponseEntity<?> saveBanner(CreateBannerRequest request) {
 
-        // Создание клиента
-        ClientDto clientDto = clientService.saveClient(
-                order.getClientEmail(), order.getClientFIO(), order.getClientPhone());
+        // Регистрация клиента
+        ClientDto clientDto = authService.register(
+                request.getClientEmail(), request.getClientFIO(), request.getClientPhone());
+
+        // Создание баланса клиента
         balanceService.saveBalance(clientDto);
 
         // Создание баннерной рекламы
         BannerDto bannerDto = bannerService.saveBanner(clientDto);
 
-        // Email о статусе заявки
-        sendStatusNotification(clientDto);
-
         double totalPrice = 0;
 
-        for (OrderChannelDto channelDto : order.getChannels()) {
+        // Сохранение списка заказов
+        for (CreateOrderRequest order : request.getChannels()) {
 
-            Channel channel = channelMapper.toEntity(channelService.findById(channelDto.getChannelId()));
-
-            // Подсчет цены
+            ChannelDto channel = channelService.findById(order.getChannelId());
 
             PriceDto price = priceService.findActivePriceByChannel(channel);
-            int days = channelDto.getDays().size();
-            double finalBannerPrice = priceService.getBannerPrice(price.getBannerPrice(), days);
+            int days = order.getDays().size();
 
-            channelDto.setPrice(finalBannerPrice);
-            channelDto.setPriceWithDiscount(finalBannerPrice);
+            // Подсчет цены
+            double orderPrice = priceService.calculateBannerPrice(price.getBannerPrice(), days);
+            order.setPrice(orderPrice);
+            order.setPriceWithDiscount(orderPrice);
 
-            totalPrice += finalBannerPrice;
+            totalPrice += orderPrice;
 
-            // Сохранение заказов
-            OrderDto orderDto = saveBannerOrder(bannerDto, channel);
+            // Сохранение заказа
+            OrderDto orderDto = saveBannerOrder(bannerDto, orderPrice, channel);
 
             // Сохранение order dates
-            orderDateService.saveAll(channelDto.getDays(), orderDto);
+            orderDateService.saveAll(order.getDays(), orderDto);
         }
-        order.setTotalPrice(totalPrice);
-        order.setStatus(bannerDto.getStatus());
+        request.setTotalPrice(totalPrice);
+        request.setStatus(OrderStatus.CREATED);
 
         bannerService.saveTotalPrice(bannerDto.getId(), totalPrice);
 
-        log.info("Баннер с ID «" + bannerDto.getId() + "» сохранен!");
-        return ResponseEntity.status(200).body(order);
+        log.info("Баннер с ID «" + bannerDto.getId() + "» сохранен");
+        return ResponseEntity.status(200).body(request);
 
     }
 
-    private OrderDto saveBannerOrder(BannerDto bannerDto, Channel channel) {
-        Order order = Order.builder()
-                .banner(bannerMapper.toEntity(bannerDto))
+    private OrderDto saveBannerOrder(BannerDto bannerDto, Double price, ChannelDto channel) {
+        OrderDto order = OrderDto.builder()
+                .banner(bannerDto)
                 .channel(channel)
+                .orderPrice(price)
                 .build();
-        return orderMapper.toDto(orderRepo.save(order));
+        return orderMapper.toDto(orderRepo.save(orderMapper.toEntity(order)));
 
-    }
-
-    private void sendStatusNotification(ClientDto clientDto) {
-        notificationService.send(new EmailDataDto(clientDto.getEmail(),
-                "NATV",
-                "Ваша заявка на рассмотрении!"));
-
-        log.info("Сообщение о статусе заявки отправлено клиенту на email: " + clientDto.getEmail());
     }
 
     @Override

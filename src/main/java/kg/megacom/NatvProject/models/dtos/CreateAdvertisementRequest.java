@@ -9,12 +9,12 @@ import java.util.List;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class BannerOrderDto {
+public class CreateAdvertisementRequest {
     String clientEmail;
     String clientFIO;
     String clientPhone;
-    String path;
+    String text;
     Double totalPrice;
     OrderStatus status;
-    List<OrderChannelDto> channels;
+    List<CreateOrderRequest> channels;
 }

@@ -1,6 +1,7 @@
 package kg.megacom.NatvProject.models.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import kg.megacom.NatvProject.models.enums.Role;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -18,4 +19,8 @@ public class ClientDto {
     LocalDateTime startDate;
     @JsonIgnore
     LocalDateTime endDate;
+    @JsonIgnore
+    String password;
+    @JsonIgnore
+    Role role;
 }

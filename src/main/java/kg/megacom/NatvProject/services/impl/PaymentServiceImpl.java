@@ -26,7 +26,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (advertisementDto.getStatus() == OrderStatus.PAID ||
                 advertisementDto.getStatus() == OrderStatus.CANCELLED) {
-            return ResponseEntity.status(407).body("Не удалось произвести оплату.");
+            return ResponseEntity.status(407).body("Не удалось произвести оплату");
         }
         BalanceDto balance = balanceService.findByClientId(advertisementDto.getClient().getId());
 
@@ -37,7 +37,7 @@ public class PaymentServiceImpl implements PaymentService {
         advertisementDto.setStatus(OrderStatus.PAID);
         advertisementService.save(advertisementDto);
 
-        log.info("Объявление с ID «" + advertisementDto.getId() + "» оплачено!");
+        log.info("Объявление с ID «" + advertisementDto.getId() + "» оплачено");
         return payment(advertisementDto.getClient(), balance, advertisementDto.getTotalPrice());
     }
 
@@ -54,13 +54,13 @@ public class PaymentServiceImpl implements PaymentService {
         BalanceDto balance = balanceService.findByClientId(bannerDto.getClient().getId());
 
         if (balance.getBalance() < bannerDto.getTotalPrice()) {
-            return ResponseEntity.status(407).body("У Вас недостаточно средств на счету!");
+            return ResponseEntity.status(407).body("У Вас недостаточно средств на счету");
         }
 
         bannerDto.setStatus(OrderStatus.PAID);
         bannerService.save(bannerDto);
 
-        log.info("Баннер с ID «" + bannerDto.getId() + "» оплачен!");
+        log.info("Баннер с ID «" + bannerDto.getId() + "» оплачен");
         return payment(bannerDto.getClient(), balance, bannerDto.getTotalPrice());
     }
 
@@ -69,9 +69,9 @@ public class PaymentServiceImpl implements PaymentService {
         balance.setBalance(balance.getBalance() - totalPrice);
         balanceService.update(balance);
 
-        notificationServiceFeignClient.send(new EmailDataDto(clientDto.getEmail(),
-                "Payment notification",
-                "С Вашего счета списано " + totalPrice + " сом!"));
+//        notificationServiceFeignClient.send(new EmailDataDto(clientDto.getEmail(),
+//                "Payment notification",
+//                "С Вашего счета списано " + totalPrice + " сом!"));
 
         log.info("У клиента с ID «" + clientDto.getId() + "» списано со счета " + totalPrice);
         return ResponseEntity.status(200).body("Операция проведена успешно");

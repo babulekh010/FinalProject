@@ -50,12 +50,12 @@ public class ChannelServiceImpl implements ChannelService {
         channelDto.setChannelId(channel.getId());
 
         // Создание price
-        channelDto.setPrice(priceService.save(channelDto.getPrice(), channel));
+        channelDto.setPrice(priceService.save(channelDto.getPrice(), channelMapper.toDto(channel)));
 
         // Создание discounts
-        discountService.saveAll(channelDto.getDiscounts(), channel);
+        discountService.saveAll(channelDto.getDiscounts(), channelMapper.toDto(channel));
 
-        log.info("Канал с ID «" + channelDto.getChannelId() + "» сохранен!");
+        log.info("Канал с ID «" + channelDto.getChannelId() + "» сохранен");
         return channelDto;
     }
 
@@ -80,15 +80,15 @@ public class ChannelServiceImpl implements ChannelService {
         return ChannelDataDto.builder()
                 .channelName(x.getName())
                 .logo(x.getLogoPath())
-                .discounts(discountMapper.toDiscountInfoList(discountService.findActiveDiscountsByChannel(x)))
-                .pricePerLetter(priceService.findActivePriceByChannel(x).getPricePerLetter())
+                .discounts(discountMapper.toDiscountInfoList(discountService.findActiveDiscountsByChannel(channelMapper.toDto(x))))
+                .pricePerLetter(priceService.findActivePriceByChannel(channelMapper.toDto(x)).getPricePerLetter())
                 .build();
     }
 
     @Override
     public ChannelFullDataDto getChannelInfo(Long channelId) {
 
-        Channel channel = channelRepo.findById(channelId).get();
+        ChannelDto channel = findById(channelId);
 
         // Актуальный прайс канала
         PriceDto price = priceService.findActivePriceByChannel(channel);
@@ -115,14 +115,14 @@ public class ChannelServiceImpl implements ChannelService {
         channel.setLogoPath(fileService.uploadImage(myPath, file));
         channelRepo.save(channel);
 
-        log.info("Логотип для канала с ID «" + channel.getId() + "» сохранен!");
+        log.info("Логотип для канала с ID «" + channel.getId() + "» сохранен");
     }
 
     @Override
     public ResponseEntity<?> calculate(ChannelCalculationDto channelDto) {
 
         int symbolAmount = channelDto.getText().replace(" ", "").length();
-        Channel channel = channelRepo.findById(channelDto.getChannelId()).get();
+        ChannelDto channel = findById(channelDto.getChannelId());
 
         if (symbolAmount < 20) {
             return ResponseEntity.status(403).body
@@ -136,9 +136,9 @@ public class ChannelServiceImpl implements ChannelService {
             double pricePerLetter = priceService.findActivePriceByChannel(channel).getPricePerLetter();
 
             channelDto.setPrice(priceService
-                    .advertisementPriceWithoutDiscount(symbolAmount, pricePerLetter, channelDto.getDaysCount()));
+                    .calculateAdPriceWithoutDiscount(symbolAmount, pricePerLetter, channelDto.getDaysCount()));
             channelDto.setPriceWithDiscount(priceService.
-                    getFinalAdvertisementPrice(activeDiscounts, pricePerLetter, symbolAmount, channelDto.getDaysCount()));
+                    calculateAdPriceWithDiscount(activeDiscounts, pricePerLetter, symbolAmount, channelDto.getDaysCount()));
             return ResponseEntity.ok(channelDto);
         }
     }
@@ -152,13 +152,13 @@ public class ChannelServiceImpl implements ChannelService {
         channel = channelRepo.save(channel);
 
         // Обновление цены
-        priceService.update(channelDto.getPrice(), channel);
+        priceService.update(channelDto.getPrice(), channelMapper.toDto(channel));
 
         // Обновление скидок
-        discountService.update(channelDto.getDiscounts(), channel);
-        channelDto.setDiscounts(discountService.findActiveDiscountsByChannel(channel));
+        discountService.update(channelDto.getDiscounts(), channelMapper.toDto(channel));
+        channelDto.setDiscounts(discountService.findActiveDiscountsByChannel(channelMapper.toDto(channel)));
 
-        log.info("Канал с ID «" + channelDto.getChannelId() + "» обновлен!");
+        log.info("Канал с ID «" + channelDto.getChannelId() + "» обновлен");
         return channelDto;
     }
 }
