@@ -54,7 +54,7 @@ public class OrderServiceImpl implements OrderService {
             AdvertisementDto advertisementDto = advertisementService.saveAdvertisement(order.getText(), clientDto);
 
             // Email о статусе заявки
-            sendStatusNotification(clientDto);
+//            sendStatusNotification(clientDto);
 
             double totalPrice = 0;
 
@@ -112,7 +112,7 @@ public class OrderServiceImpl implements OrderService {
         BannerDto bannerDto = bannerService.saveBanner(clientDto);
 
         // Email о статусе заявки
-        sendStatusNotification(clientDto);
+//        sendStatusNotification(clientDto);
 
         double totalPrice = 0;
 

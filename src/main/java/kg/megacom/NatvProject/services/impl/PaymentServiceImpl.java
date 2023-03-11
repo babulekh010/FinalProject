@@ -69,9 +69,9 @@ public class PaymentServiceImpl implements PaymentService {
         balance.setBalance(balance.getBalance() - totalPrice);
         balanceService.update(balance);
 
-        notificationServiceFeignClient.send(new EmailDataDto(clientDto.getEmail(),
-                "Payment notification",
-                "С Вашего счета списано " + totalPrice + " сом!"));
+//        notificationServiceFeignClient.send(new EmailDataDto(clientDto.getEmail(),
+//                "Payment notification",
+//                "С Вашего счета списано " + totalPrice + " сом!"));
 
         log.info("У клиента с ID «" + clientDto.getId() + "» списано со счета " + totalPrice);
         return ResponseEntity.status(200).body("Операция проведена успешно");
