@@ -78,6 +78,7 @@ public class ChannelServiceImpl implements ChannelService {
 
     private ChannelDataDto toChannelDataDto(Channel x) {
         return ChannelDataDto.builder()
+                .id(x.getId())
                 .channelName(x.getName())
                 .logo(x.getLogoPath())
                 .discounts(discountMapper.toDiscountInfoList(discountService.findActiveDiscountsByChannel(x)))
